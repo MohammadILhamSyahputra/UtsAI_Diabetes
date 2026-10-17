@@ -1,0 +1,131 @@
+<section class="wrap about" id="dataset">
+  <h2>Dataset dan praproses</h2>
+  <p class="lead">Data berasal dari Diabetes Prediction Dataset di Kaggle (Mohammed Mustafa), dengan {{ metrics.n_awal|ribuan }} baris dan 9 kolom. Kolom <code>diabetes</code> adalah target: 0 untuk tidak diabetes, 1 untuk diabetes.</p>
+
+  <h3>Contoh data</h3>
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>gender</th><th>age</th><th>hypertension</th><th>heart_disease</th><th>smoking_history</th><th>bmi</th><th>HbA1c_level</th><th>blood_glucose_level</th><th>diabetes</th></tr>
+      </thead>
+      <tbody>
+        {% for r in sampel %}
+        <tr>{% for c in r %}<td>{{ c }}</td>{% endfor %}</tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Sebaran kelas</h3>
+  <p class="sub">Kelas diabetes hanya sebagian kecil dari seluruh data, sehingga akurasi saja tidak cukup untuk menilai model.</p>
+  <div class="bars">
+    <div class="bar-row">
+      <span class="bar-label">Tidak diabetes (0)</span>
+      <span class="bar"><span class="fill neg" style="width: {{ (metrics.kelas_0 / metrics.n_awal * 100)|round(1) }}%"></span></span>
+      <span class="bar-val">{{ metrics.kelas_0|ribuan }}</span>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">Diabetes (1)</span>
+      <span class="bar"><span class="fill pos" style="width: {{ (metrics.kelas_1 / metrics.n_awal * 100)|round(1) }}%"></span></span>
+      <span class="bar-val">{{ metrics.kelas_1|ribuan }}</span>
+    </div>
+  </div>
+
+  <h3>Tahapan praproses</h3>
+  <ol class="steps">
+    <li><strong>Cek missing value.</strong> Tidak ada nilai yang hilang di semua kolom.</li>
+    <li><strong>Hapus data duplikat.</strong> {{ metrics.n_duplikat|ribuan }} baris duplikat dibuang, tersisa {{ metrics.n_bersih|ribuan }} data.</li>
+    <li><strong>Pisahkan fitur dan target.</strong> 8 kolom menjadi fitur (X), kolom <code>diabetes</code> menjadi target (y).</li>
+    <li><strong>Bagi data latih dan uji.</strong> Perbandingan 80:20 dengan <code>stratify</code> dan <code>random_state=42</code>: {{ metrics.n_train|ribuan }} data latih dan {{ metrics.n_test|ribuan }} data uji.</li>
+    <li><strong>Standardisasi fitur numerik</strong> dengan <code>StandardScaler</code>, supaya skala usia, BMI, dan glukosa seimbang.</li>
+    <li><strong>One-hot encoding fitur kategorikal</strong> dengan <code>OneHotEncoder</code>, sehingga 8 fitur menjadi 15 kolom input.</li>
+  </ol>
+  <p class="sub">Langkah standardisasi dan encoding berada di dalam <code>Pipeline</code>, jadi dipelajari dari data latih saja lalu dipakai ulang untuk data uji dan data baru dari form.</p>
+
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>Fitur</th><th>Jenis</th><th>Perlakuan</th><th>Kolom hasil</th></tr></thead>
+      <tbody>
+        <tr><td>age, bmi, HbA1c_level, blood_glucose_level</td><td>Numerik</td><td>StandardScaler</td><td>4</td></tr>
+        <tr><td>hypertension, heart_disease</td><td>Numerik (0/1)</td><td>StandardScaler</td><td>2</td></tr>
+        <tr><td>gender</td><td>Kategorikal</td><td>OneHotEncoder</td><td>3 (Female, Male, Other)</td></tr>
+        <tr><td>smoking_history</td><td>Kategorikal</td><td>OneHotEncoder</td><td>6 (No Info, current, ever, former, never, not current)</td></tr>
+        <tr class="total"><td colspan="3">Total kolom input model</td><td>15</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="wrap about" id="model">
+  <h2>Model</h2>
+  <p class="lead">Klasifikasi biner memakai <code>MLPClassifier</code> dari scikit-learn. Setiap neuron menghitung jumlah input berbobot ditambah bias, lalu hasilnya melewati fungsi aktivasi.</p>
+
+  <div class="arch" role="img" aria-label="Arsitektur: 15 input, hidden layer 256, 128, 64, 32 neuron, 1 output">
+    <div class="node in"><b>15</b><span>Input</span></div>
+    <div class="node hid"><b>256</b><span>Hidden 1</span></div>
+    <div class="node hid"><b>128</b><span>Hidden 2</span></div>
+    <div class="node hid"><b>64</b><span>Hidden 3</span></div>
+    <div class="node hid"><b>32</b><span>Hidden 4</span></div>
+    <div class="node out"><b>1</b><span>Output</span></div>
+  </div>
+
+  <dl class="spec">
+    <div><dt>Aktivasi hidden layer</dt><dd>ReLU</dd></div>
+    <div><dt>Aktivasi output</dt><dd>Sigmoid (logistic), menghasilkan peluang 0 sampai 1</dd></div>
+    <div><dt>Optimizer</dt><dd>Adam, learning rate 0,001</dd></div>
+    <div><dt>Regularisasi (alpha)</dt><dd>0,0001</dd></div>
+    <div><dt>Epoch maksimal</dt><dd>500</dd></div>
+    <!-- {% if metrics.n_iter %}<div><dt>Epoch yang dijalankan</dt><dd>{{ metrics.n_iter }}</dd></div>{% endif %} -->
+  </dl>
+
+  <h3>Kurva loss saat training</h3>
+  {% if ada_loss %}
+  <figure>
+    <img src="{{ url_for('static', filename='training_loss.png') }}" alt="Kurva loss training MLP menurun dari iterasi pertama hingga berhenti">
+    <figcaption>Loss yang menurun menandakan model belajar dari data latih.</figcaption>
+  </figure>
+  {% else %}
+  <p class="missing">Gambar belum tersedia. Jalankan <code>train_model.py</code> atau salin <code>training_loss.png</code> ke folder <code>static</code>.</p>
+  {% endif %}
+</section>
+
+<section class="wrap about" id="evaluasi">
+  <h2>Evaluasi</h2>
+  <p class="lead">Model diuji pada {{ metrics.n_test|ribuan }} data uji yang tidak dipakai saat training.</p>
+
+  <div class="stats">
+    <div><span>Accuracy</span><b>{{ '%.2f' % (metrics.accuracy * 100) }}%</b></div>
+    <div><span>Precision</span><b>{{ '%.2f' % (metrics.precision * 100) }}%</b></div>
+    <div><span>Recall</span><b>{{ '%.2f' % (metrics.recall * 100) }}%</b></div>
+    <div><span>F1-score</span><b>{{ '%.2f' % (metrics.f1 * 100) }}%</b></div>
+    <div><span>ROC-AUC</span><b>{{ '%.2f' % (metrics.roc_auc * 100) }}%</b></div>
+  </div>
+
+  <h3>Confusion matrix</h3>
+  {% if ada_cm %}
+  <figure>
+    <img src="{{ url_for('static', filename='confusion_matrix.png') }}" alt="Confusion matrix MLP pada data uji">
+    <figcaption>Baris adalah kelas sebenarnya, kolom adalah hasil prediksi model.</figcaption>
+  </figure>
+  {% else %}
+  <p class="missing">Gambar belum tersedia. Jalankan <code>train_model.py</code> atau salin <code>confusion_matrix.png</code> ke folder <code>static</code>.</p>
+  {% endif %}
+
+  <p class="reading">Dari {{ (metrics.cm[1][0] + metrics.cm[1][1])|ribuan }} pasien diabetes di data uji, model mendeteksi {{ metrics.cm[1][1]|ribuan }} dan melewatkan {{ metrics.cm[1][0]|ribuan }}. Prediksi diabetes yang salah hanya {{ metrics.cm[0][1]|ribuan }} kasus. Artinya model sangat teliti saat menyebut diabetes (precision tinggi), tetapi masih banyak kasus diabetes yang tidak tertangkap (recall rendah).</p>
+
+  <h3>Perbandingan dengan jurnal rujukan</h3>
+  <p class="sub">Jurnal: Klasifikasi Penyakit Diabetes Melitus Berbasis Jaringan Syaraf Tiruan Menggunakan Algoritma Multi-Layer Perceptron (JUKTISI Vol 5 No 1, Juni 2026), memakai dataset yang sama.</p>
+  <div class="table-scroll narrow">
+    <table>
+      <thead><tr><th>Metrik</th><th>Project ini</th><th>Jurnal</th></tr></thead>
+      <tbody>
+        <tr><td>Accuracy</td><td>{{ '%.4f' % metrics.accuracy }}</td><td>{{ '%.4f' % jurnal.accuracy }}</td></tr>
+        <tr><td>Precision</td><td>{{ '%.4f' % metrics.precision }}</td><td>{{ '%.4f' % jurnal.precision }}</td></tr>
+        <tr><td>Recall</td><td>{{ '%.4f' % metrics.recall }}</td><td>{{ '%.4f' % jurnal.recall }}</td></tr>
+        <tr><td>F1-score</td><td>{{ '%.4f' % metrics.f1 }}</td><td>{{ '%.4f' % jurnal.f1 }}</td></tr>
+        <tr><td>ROC-AUC</td><td>{{ '%.4f' % metrics.roc_auc }}</td><td>{{ '%.4f' % jurnal.roc_auc }}</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub">Persamaan: dataset, pembagian 80:20, dan pola hasil (recall kelas diabetes sama-sama rendah). Perbedaan: jurnal memakai TensorFlow/Keras dengan batch normalization, dropout, dan threshold tuning, sedangkan project ini memakai scikit-learn.</p>
+</section>

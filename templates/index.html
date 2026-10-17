@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prediksi Diabetes Melitus dengan MLP</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="top">
+    <div class="wrap">
+      <h1>Prediksi Diabetes Melitus</h1>
+      <p>Masukkan data kesehatan pasien. Model Multilayer Perceptron (MLP) menghitung peluang diabetes dari 8 atribut.</p>
+      <nav class="nav" aria-label="Bagian halaman">
+        <a href="#prediksi">Prediksi</a>
+        <a href="#dataset">Dataset dan praproses</a>
+        <a href="#model">Model</a>
+        <a href="#evaluasi">Evaluasi</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap layout" id="prediksi">
+    <form method="post" action="{{ url_for('index') }}#hasil" class="panel form" novalidate>
+      <div class="form-head">
+        <h2>Data pasien</h2>
+        <div class="samples">
+          <span>Isi contoh:</span>
+          <button type="button" class="chip" data-sample="sehat">Pasien sehat</button>
+          <button type="button" class="chip" data-sample="risiko">Pasien berisiko</button>
+        </div>
+      </div>
+
+      {% if errors %}
+      <div class="alert" role="alert">
+        <strong>Data belum bisa diproses.</strong>
+        <ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>
+      </div>
+      {% endif %}
+
+      <fieldset>
+        <legend>Identitas</legend>
+        <div class="grid">
+          <label>Jenis kelamin
+            <select name="gender" required>
+              <option value="" disabled {{ 'selected' if not data.get('gender') }}>Pilih</option>
+              {% for v, l in gender_options %}
+              <option value="{{ v }}" {{ 'selected' if data.get('gender') == v }}>{{ l }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label>Usia (tahun)
+            <input type="text" inputmode="decimal" name="age" value="{{ data.get('age', '') }}" placeholder="contoh: 54" required>
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Riwayat kesehatan</legend>
+        <div class="grid">
+          <label>Hipertensi
+            <select name="hypertension" required>
+              <option value="" disabled {{ 'selected' if not data.get('hypertension') }}>Pilih</option>
+              {% for v, l in yesno_options %}
+              <option value="{{ v }}" {{ 'selected' if data.get('hypertension') == v }}>{{ l }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label>Penyakit jantung
+            <select name="heart_disease" required>
+              <option value="" disabled {{ 'selected' if not data.get('heart_disease') }}>Pilih</option>
+              {% for v, l in yesno_options %}
+              <option value="{{ v }}" {{ 'selected' if data.get('heart_disease') == v }}>{{ l }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label class="full">Riwayat merokok
+            <select name="smoking_history" required>
+              <option value="" disabled {{ 'selected' if not data.get('smoking_history') }}>Pilih</option>
+              {% for v, l in smoking_options %}
+              <option value="{{ v }}" {{ 'selected' if data.get('smoking_history') == v }}>{{ l }}</option>
+              {% endfor %}
+            </select>
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Hasil pemeriksaan</legend>
+        <div class="grid three">
+          <label>BMI (kg/m²)
+            <input type="text" inputmode="decimal" name="bmi" value="{{ data.get('bmi', '') }}" placeholder="contoh: 27.3" required>
+          </label>
+          <label>HbA1c (%)
+            <input type="text" inputmode="decimal" name="HbA1c_level" value="{{ data.get('HbA1c_level', '') }}" placeholder="contoh: 6.5" required>
+          </label>
+          <label>Glukosa (mg/dL)
+            <input type="text" inputmode="decimal" name="blood_glucose_level" value="{{ data.get('blood_glucose_level', '') }}" placeholder="contoh: 140" required>
+          </label>
+        </div>
+      </fieldset>
+
+      <button type="submit" class="submit">Prediksi</button>
+    </form>
+
+    <aside class="panel result {{ 'is-pos' if hasil and hasil.kelas == 1 }}{{ 'is-neg' if hasil and hasil.kelas == 0 }}" id="hasil" aria-live="polite">
+      {% if hasil %}
+        <h2>Hasil prediksi</h2>
+        <p class="verdict">{{ hasil.label }}</p>
+        <p class="pct"><strong>{{ '%.2f' % hasil.p_diabetes }}%</strong> peluang diabetes</p>
+
+        <div class="meter" role="img" aria-label="Peluang diabetes {{ hasil.p_diabetes }} persen">
+          <div class="track"><span class="half"></span></div>
+          <div class="pin" style="left: {{ hasil.p_diabetes }}%"></div>
+          <div class="scale"><span>0%</span><span>batas 50%</span><span>100%</span></div>
+        </div>
+
+        <dl class="probs">
+          <div><dt>Tidak diabetes (0)</dt><dd>{{ '%.2f' % hasil.p_normal }}%</dd></div>
+          <div><dt>Diabetes (1)</dt><dd>{{ '%.2f' % hasil.p_diabetes }}%</dd></div>
+        </dl>
+      {% else %}
+        <h2>Hasil prediksi</h2>
+        <p class="empty">Isi data pasien, lalu tekan <strong>Prediksi</strong>. Hasil dan peluangnya muncul di sini.</p>
+      {% endif %}
+      <p class="note">Prototype untuk tugas UTS Kecerdasan Buatan. Hasil ini perkiraan model, bukan diagnosis medis.</p>
+    </aside>
+  </main>
+
+  {% include "tentang.html" %}
+
+  <footer class="wrap foot">
+    Model: MLPClassifier (hidden layer 256-128-64-32, ReLU, Adam). Dataset: Diabetes Prediction Dataset (Kaggle), 96.146 data setelah pembersihan.
+  </footer>
+
+  <script>
+    const contoh = {
+      sehat:  { gender: "Female", age: "28", hypertension: "0", heart_disease: "0", smoking_history: "never", bmi: "23.5", HbA1c_level: "5.0", blood_glucose_level: "100" },
+      risiko: { gender: "Male", age: "62", hypertension: "1", heart_disease: "1", smoking_history: "former", bmi: "33.0", HbA1c_level: "7.5", blood_glucose_level: "220" }
+    };
+    document.querySelectorAll("[data-sample]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const d = contoh[btn.dataset.sample];
+        for (const k in d) document.querySelector(`[name="${k}"]`).value = d[k];
+      });
+    });
+  </script>
+</body>
+</html>
