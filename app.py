@@ -66,7 +66,7 @@ SAMPEL_DATA = [
 # ======================================================
 # 2. PILIHAN FORM
 # ======================================================
-GENDER_OPTIONS = [("Female", "Perempuan"), ("Male", "Laki-laki"), ("Other", "Lainnya")]
+GENDER_OPTIONS = [("Female", "Perempuan"), ("Male", "Laki-laki")]
 YESNO_OPTIONS = [("0", "Tidak"), ("1", "Ya")]
 SMOKING_OPTIONS = [
     ("never", "Tidak pernah merokok"),

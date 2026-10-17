@@ -3,25 +3,40 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Prediksi Diabetes Melitus dengan MLP</title>
+  <title>Klasifikasi Diabetes Melitus dengan MLP</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-  <header class="top">
+  <a class="skip" href="#prediksi">Lewati ke konten</a>
+
+  <header class="hero">
     <div class="wrap">
-      <h1>Prediksi Diabetes Melitus</h1>
-      <p>Masukkan data kesehatan pasien. Model Multilayer Perceptron (MLP) menghitung peluang diabetes dari 8 atribut.</p>
-      <nav class="nav" aria-label="Bagian halaman">
-        <a href="#prediksi">Prediksi</a>
+      <p class="eyebrow">Tugas UTS Kecerdasan Buatan</p>
+      <h1>Klasifikasi Diabetes Melitus</h1>
+      <p class="lead">Masukkan data kesehatan pasien. Model Multilayer Perceptron (MLP) menghitung peluang diabetes dari 8 atribut.</p>
+      <dl class="facts">
+        <div><dt>Data dipakai</dt><dd>{{ metrics.n_bersih|ribuan }}</dd></div>
+        <!-- <div><dt>Fitur input</dt><dd>15</dd></div> -->
+        <div><dt>Accuracy</dt><dd>{{ '%.2f' % (metrics.accuracy * 100) }}%</dd></div>
+        <div><dt>Recall diabetes</dt><dd>{{ '%.2f' % (metrics.recall * 100) }}%</dd></div>
+      </dl>
+    </div>
+  </header>
+
+  <nav class="subnav" aria-label="Bagian halaman">
+    <div class="wrap subnav-in">
+      <span class="brand">MLP Diabetes</span>
+      <div class="links">
+        <a href="#prediksi" class="on">Prediksi</a>
         <a href="#dataset">Dataset dan praproses</a>
         <a href="#model">Model</a>
         <a href="#evaluasi">Evaluasi</a>
-      </nav>
+      </div>
     </div>
-  </header>
+  </nav>
 
   <main class="wrap layout" id="prediksi">
     <form method="post" action="{{ url_for('index') }}#hasil" class="panel form" novalidate>
@@ -107,10 +122,14 @@
     </form>
 
     <aside class="panel result {{ 'is-pos' if hasil and hasil.kelas == 1 }}{{ 'is-neg' if hasil and hasil.kelas == 0 }}" id="hasil" aria-live="polite">
+      <div class="res-head">
+        <h2>Hasil Klasifikasi</h2>
+        {% if hasil %}<span class="badge">{{ 'Diabetes (1)' if hasil.kelas == 1 else 'Tidak diabetes (0)' }}</span>{% endif %}
+      </div>
+
       {% if hasil %}
-        <h2>Hasil prediksi</h2>
         <p class="verdict">{{ hasil.label }}</p>
-        <p class="pct"><strong>{{ '%.2f' % hasil.p_diabetes }}%</strong> peluang diabetes</p>
+        <p class="big"><span>{{ '%.2f' % hasil.p_diabetes }}<small>%</small></span><em>peluang diabetes</em></p>
 
         <div class="meter" role="img" aria-label="Peluang diabetes {{ hasil.p_diabetes }} persen">
           <div class="track"><span class="half"></span></div>
@@ -123,8 +142,10 @@
           <div><dt>Diabetes (1)</dt><dd>{{ '%.2f' % hasil.p_diabetes }}%</dd></div>
         </dl>
       {% else %}
-        <h2>Hasil prediksi</h2>
-        <p class="empty">Isi data pasien, lalu tekan <strong>Prediksi</strong>. Hasil dan peluangnya muncul di sini.</p>
+        <p class="empty">Isi data pasien, lalu tekan <strong>Klasifikasi</strong>. Hasil dan peluangnya muncul di sini.</p>
+        <svg class="empty-art" viewBox="0 0 240 60" width="100%" height="60" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 34h54l12-24 20 44 16-36 10 16h120"/>
+        </svg>
       {% endif %}
       <p class="note">Prototype untuk tugas UTS Kecerdasan Buatan. Hasil ini perkiraan model, bukan diagnosis medis.</p>
     </aside>
@@ -132,11 +153,14 @@
 
   {% include "tentang.html" %}
 
-  <footer class="wrap foot">
-    Model: MLPClassifier (hidden layer 256-128-64-32, ReLU, Adam). Dataset: Diabetes Prediction Dataset (Kaggle), 96.146 data setelah pembersihan.
+  <footer class="foot">
+    <div class="wrap">
+      <p>Model: MLPClassifier (hidden layer 256-128-64-32, ReLU, Adam). Dataset: Diabetes Prediction Dataset (Kaggle), {{ metrics.n_bersih|ribuan }} data setelah pembersihan.</p>
+    </div>
   </footer>
 
   <script>
+    // Tombol contoh data
     const contoh = {
       sehat:  { gender: "Female", age: "28", hypertension: "0", heart_disease: "0", smoking_history: "never", bmi: "23.5", HbA1c_level: "5.0", blood_glucose_level: "100" },
       risiko: { gender: "Male", age: "62", hypertension: "1", heart_disease: "1", smoking_history: "former", bmi: "33.0", HbA1c_level: "7.5", blood_glucose_level: "220" }
@@ -147,6 +171,18 @@
         for (const k in d) document.querySelector(`[name="${k}"]`).value = d[k];
       });
     });
+
+    // Menandai menu yang sedang dilihat
+    const tautan = [...document.querySelectorAll(".links a")];
+    const bagian = tautan.map(a => document.querySelector(a.getAttribute("href")));
+    function tandai() {
+      const batas = window.scrollY + 120;
+      let aktif = 0;
+      bagian.forEach((el, i) => { if (el && el.offsetTop <= batas) aktif = i; });
+      tautan.forEach((a, i) => a.classList.toggle("on", i === aktif));
+    }
+    window.addEventListener("scroll", tandai, { passive: true });
+    tandai();
   </script>
 </body>
 </html>
