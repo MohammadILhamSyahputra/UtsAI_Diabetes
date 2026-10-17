@@ -1,0 +1,17 @@
+# ======================================================
+# DOCKER COMPOSE - APLIKASI WEB FLASK PREDIKSI DIABETES
+# Jalankan dengan:  docker compose up --build
+# ======================================================
+services:
+  web:
+    build: .
+    container_name: diabetes-app
+    ports:
+      - "5000:5000"   # host:container -> buka http://localhost:5000
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
